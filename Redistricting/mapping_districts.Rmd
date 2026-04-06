@@ -1,0 +1,64 @@
+---
+title: "Mapping Districts of Texas and Maryland"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+library(alarmdata)
+library(redist)
+library(ggplot2)
+library(ggredist)
+```
+
+### Texas
+
+Link to SHP file for 2025 approved redistricting map: https://redistrictingdatahub.org/dataset/2025-texas-congressional-districts-approved-plan/
+
+```{r}
+map_texas <- alarm_50state_map('TX')
+#plans_texas <- alarm_50state_plans('TX')
+
+# precinct map
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv))) +
+    scale_fill_party_c() +
+    theme_map()
+
+# 2020 district map
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    scale_fill_party_c() +
+    theme_map()
+```
+
+### Maryland
+
+```{r}
+map_maryland <- alarm_50state_map('MD')
+#plans_maryland <- alarm_50state_plans('MD')
+
+# precinct map
+map_maryland |> 
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv))) +
+    scale_fill_party_c() +
+    theme_map()
+
+# 2020 district map
+map_maryland |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    scale_fill_party_c() +
+    theme_map()
+
+# Not working yet
+#proposed_maryland_map <- readr::read_csv("DKunes_Submission.csv")
+#proposed_maryland_map |>
+#  ggplot() +
+#  geom_district()
+```
