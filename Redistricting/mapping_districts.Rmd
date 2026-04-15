@@ -11,6 +11,7 @@ library(alarmdata)
 library(redist)
 library(ggplot2)
 library(ggredist)
+library(sf)
 ```
 
 ### Texas
@@ -24,7 +25,7 @@ map_texas <- alarm_50state_map('TX')
 # precinct map
 map_texas |> 
     ggplot() +
-    geom_sf(aes(fill = ndv / (nrv + ndv))) +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
     scale_fill_party_c() +
     theme_map()
 
@@ -36,7 +37,46 @@ map_texas |>
     theme_map()
 ```
 
+### TX demographics
+
+
+
+``` {r}
+# black*
+map_texas |>
+  ggplot() +
+  geom_sf(aes(fill = vap_black / vap), color = NA) +
+  scale_fill_viridis_c("Black VAP %", option = "plasma") +
+  theme_map()
+
+# hisp**
+map_texas |>
+  ggplot() +
+  geom_sf(aes(fill = vap_hisp / vap), color = NA) +
+  scale_fill_viridis_c("Hispanic\nVAP %", option = "plasma") +
+  theme_map()
+
+# asian
+map_texas |>
+  ggplot() +
+  geom_sf(aes(fill = vap_asian / vap), color = NA) +
+  scale_fill_viridis_c("Asian VAP %", option = "plasma") +
+  theme_map()
+
+#total minority
+map_texas <- map_texas |>
+  mutate(vap_minor = (vap_hisp + vap_black + vap_aian + vap_asian + vap_nhpi + vap_other))
+map_texas |>
+  ggplot() +
+  geom_sf(aes(fill = vap_minor / vap), color = NA) +
+  scale_fill_viridis_c("Minority\nVAP %", option = "plasma") +
+  theme_map()
+
+```
+
 ### Maryland
+
+
 
 ```{r}
 map_maryland <- alarm_50state_map('MD')
@@ -45,7 +85,7 @@ map_maryland <- alarm_50state_map('MD')
 # precinct map
 map_maryland |> 
     ggplot() +
-    geom_sf(aes(fill = ndv / (nrv + ndv))) +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
     scale_fill_party_c() +
     theme_map()
 
@@ -62,3 +102,41 @@ map_maryland |>
 #  ggplot() +
 #  geom_district()
 ```
+
+### MD demographics
+
+
+
+``` {r}
+# black*
+map_maryland |>
+  ggplot() +
+  geom_sf(aes(fill = vap_black / vap), color = NA) +
+  scale_fill_viridis_c("Black VAP %", option = "plasma") +
+  theme_map()
+
+# hisp**
+map_maryland |>
+  ggplot() +
+  geom_sf(aes(fill = vap_hisp / vap), color = NA) +
+  scale_fill_viridis_c("Hispanic\nVAP %", option = "plasma") +
+  theme_map()
+
+# asian
+map_maryland |>
+  ggplot() +
+  geom_sf(aes(fill = vap_asian / vap), color = NA) +
+  scale_fill_viridis_c("Asian VAP %", option = "plasma") +
+  theme_map()
+
+#total minority
+map_maryland <- map_maryland |>
+  mutate(vap_minor = (vap_hisp + vap_black + vap_aian + vap_asian + vap_nhpi + vap_other))
+map_maryland |>
+  ggplot() +
+  geom_sf(aes(fill = vap_minor / vap), color = NA) +
+  scale_fill_viridis_c("Minority\nVAP %", option = "plasma") +
+  theme_map()
+
+```
+
