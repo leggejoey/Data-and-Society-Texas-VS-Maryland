@@ -35,6 +35,22 @@ map_texas |>
     geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
     scale_fill_party_c() +
     theme_map()
+
+# dashed precinct lines under solid district lines
+map_texas |>
+  ggplot() +
+  geom_district(aes(group=cd_2020,fill=ndv, denom=ndv+nrv), linewidth=0.6) +
+  geom_sf(linewidth=0.2, linetype="dashed", fill=NA) +
+  scale_fill_party_b(limits=c(0.4, 0.6)) +
+  theme_map()
+
+# dashed county lines under solid district lines
+map_texas |>
+  ggplot() +
+  geom_district(aes(group=cd_2020,fill=ndv, denom=ndv+nrv), linewidth=0.6) +
+  geom_district(aes(group=county), linewidth=0.2, linetype="dashed", fill=NA) +
+  scale_fill_party_b(limits=c(0.4, 0.6)) +
+  theme_map()
 ```
 
 ### TX demographics
@@ -72,6 +88,47 @@ map_texas |>
   scale_fill_viridis_c("Minority\nVAP %", option = "plasma") +
   theme_map()
 
+race_palette <- c(
+  "Hispanic" = "#e67e22",
+  "White"    = "#3498db",
+  "Black"    = "#2ecc71",
+  "AIAN"     = "#e74c3c",
+  "Asian"    = "#9b59b6",
+  "NHPI"     = "#f1c40f",
+  "Other"    = "#95a5a6",
+  "Two+"     = "#d35400"
+)
+
+map_texas <- map_texas |> 
+  mutate(majority_race = case_when(
+    vap_hisp  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Hispanic",
+    vap_white == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "White",
+    vap_black == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Black",
+    vap_aian  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "AIAN",
+    vap_asian == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Asian",
+    vap_nhpi  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "NHPI",
+    vap_other == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Other",
+    vap_two   == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Two+",
+    TRUE ~ "Multiple/Tie"
+  ))
+
+# Map all races in TX by majority in each precinct
+map_texas |> 
+  ggplot() +
+  geom_sf(aes(fill = majority_race), color = NA) + #size = 0.01
+  geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+  scale_fill_manual(values = race_palette) +
+  theme_map() +
+  labs(fill = "Majority Race (VAP)")
+
 ```
 
 ### Maryland
@@ -95,6 +152,22 @@ map_maryland |>
     geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
     scale_fill_party_c() +
     theme_map()
+
+# dashed precinct lines under solid district lines
+map_maryland |>
+  ggplot() +
+  geom_district(aes(group=cd_2020,fill=ndv, denom=ndv+nrv), linewidth=0.6) +
+  geom_sf(linewidth=0.2, linetype="dashed", fill=NA) +
+  scale_fill_party_b(limits=c(0.4, 0.6)) +
+  theme_map()
+
+# dashed county lines under solid district lines
+map_maryland |>
+  ggplot() +
+  geom_district(aes(group=cd_2020,fill=ndv, denom=ndv+nrv), linewidth=0.6) +
+  geom_district(aes(group=county), linewidth=0.2, linetype="dashed", fill=NA) +
+  scale_fill_party_b(limits=c(0.4, 0.6)) +
+  theme_map()
 
 # Not working yet
 #proposed_maryland_map <- readr::read_csv("DKunes_Submission.csv")
@@ -138,5 +211,34 @@ map_maryland |>
   scale_fill_viridis_c("Minority\nVAP %", option = "plasma") +
   theme_map()
 
+map_maryland <- map_maryland |> 
+  mutate(majority_race = case_when(
+    vap_hisp  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Hispanic",
+    vap_white == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "White",
+    vap_black == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Black",
+    vap_aian  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "AIAN",
+    vap_asian == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Asian",
+    vap_nhpi  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "NHPI",
+    vap_other == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Other",
+    vap_two   == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Two+",
+    TRUE ~ "Multiple/Tie"
+  ))
+
+# Map all races in MD by majority in each precinct
+map_maryland |> 
+  ggplot() +
+  geom_sf(aes(fill = majority_race), color = NA) + #size = 0.01
+  geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+  scale_fill_manual(values = race_palette) +
+  theme_map() +
+  labs(fill = "Majority Race (VAP)")
 ```
 
