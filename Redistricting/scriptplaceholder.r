@@ -21,3 +21,19 @@ plan2333_data |>
   #scale_fill_party_c() +
   theme_map()
 
+MDadopt2022 <- st_read("Redistricting/md_cong_adopted_2022/SB1012-cong-shape-032822.shp")
+plans_maryland <- alarm_50state_plans('MD')
+
+MDadopt2022 <- MDadopt2022 |> mutate(DISTRICT = as.numeric(DISTRICT))
+
+plans_maryland <- left_join(MDadopt2022, plans_maryland, by = c("DISTRICT" = "district"))
+
+plans_maryland <- plans_maryland |> filter(draw == "cd_2020")
+
+plans_maryland |> 
+  ggplot() +
+  geom_sf(aes(fill = comp_polsby)) +
+  labs(fill = "Polsby compactness") +
+  scale_fill_gradient(limits = c(0, 1)) +
+  #scale_fill_party_c() +
+  theme_map()
