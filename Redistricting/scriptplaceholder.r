@@ -22,7 +22,7 @@ plan2193_data |>
     low = "blue", 
     high = "red",
     breaks = c(0,0.05,0.15,0.35,0.65,1),
-    labels = c("Lowest", "Low", "Mid Low", "Mid", "Mid High or Higher", "Highest"),
+    labels = c("0: Lowest", "0.05: Very Low", "0.15: Low", "0.35: Low Mid", "0.65: Mid High or Higher", "1: Highest"),
     limits = c(0,1)) +
     theme_map()
 
@@ -44,6 +44,17 @@ plans_maryland |>
     low = "blue", 
     high = "red",
     #breaks = c(0,0.05,0.15,0.35,0.65,1),
-    labels = c("Lowest", "Mid Low", "Mid", "High Mid", "Highest"),
+    labels = c("0: Lowest", "0.25: Mid Low", "0.5: Mid", "0.75: High Mid", "1: Highest"),
     limits = c(0,1)) +
   theme_map()
+
+#tmap example:
+  #library(tmap)
+  #map_wa <- alarm_50state_map("WA")
+  #tmap_mode("view") #once per r session
+  #my_map <- map_wa |> 
+  #  mutate(prop_hisp = pop_hisp/pop) |>
+  #  tm_shape() + 
+  #    tm_polygons("prop_hisp", hover = "prop_hisp")
+  #tmap_leaflet(my_map) #converts it to leaflet object
+  #my_map
