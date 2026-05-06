@@ -191,6 +191,7 @@ map_texas |>
 
 ```
 
+
 ### Maryland
 
 
@@ -302,3 +303,35 @@ map_maryland |>
   labs(fill = "Majority Race (VAP)")
 ```
 
+### Zoomed-in maps of major MD cities
+
+```{r}
+# Zoomed-in maps of major cities
+map_maryland |>
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    annotate(geom = "text", x = -76.6104, y = 39.2905, label = "Baltimore") +
+    annotate(geom = "text", x = -77.0369, y = 38.9037, label = "Washington") +
+    coord_sf(xlim = c(-79.5, -74.9), ylim = c(37.77, 39.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_map()
+
+# Zoomed-in maps of major cities
+map_maryland |>
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=cd_2020), linewidth=0.6, fill = NA) +
+    coord_sf(xlim = c(-77.5, -76.3), ylim = c(38.5, 39.55), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Washington & Baltimore")
+
+map_maryland |>
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) + #size = 0.01
+    geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-77.5, -76.3), ylim = c(38.5, 39.55), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Washington & Baltimore")
+```
