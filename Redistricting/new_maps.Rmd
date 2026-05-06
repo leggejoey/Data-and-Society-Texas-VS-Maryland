@@ -1,0 +1,61 @@
+---
+title: "New Maps"
+output: html_document
+date: "2026-05-04"
+---
+
+```{r}
+library(tidyverse)
+library(alarmdata)
+library(PL94171)
+library(ggplot2)
+library(redist)
+library(ggredist)
+library(sf)
+options(scipen = 999)
+```
+
+### 2025 Texas Map
+
+```{r}
+
+# ALARM data map of Texas
+map_texas <- alarm_50state_map("TX")
+
+# PL 2020 data for Texas
+pl_texas <- pl_read(pl_url("TX", year=2020))
+# Block-level data with 15-digit GEOIDs that match PLANC2333
+pl_texas_750 <- pl_subset(pl_texas, sumlev = "750")
+# Derive the 11-digit GEOIDs from State + County + Voting District in PL
+pl_texas_750$GEOID11 <- paste0(paste0(pl_texas_750$STATE, pl_texas_750$COUNTY), pl_texas_750$VTD)
+
+# 2025 districts with associated 15-digit GEOIDs
+texas_district_to_geoid <- readr::read_csv("PLANC2333/PLANC2333.csv")
+texas_district_to_geoid <- texas_district_to_geoid |> mutate(SCTBKEY = as.character(SCTBKEY))
+
+# Add the 2025 district #s by joining by 15-digit GEOIDs
+pl_texas_750 <- left_join(pl_texas_750, texas_district_to_geoid, by = c("GEOID" = "SCTBKEY"))
+
+# Make a new dataframe with just the derived 11-digit GEOIDs from PL and the 2025 district #s
+texas_district_to_geoid11 <- pl_texas_750 |>
+  select(GEOID11, DISTRICT) |>
+  distinct(GEOID11, .keep_all = TRUE)
+
+# Add the district #s onto the ALARM data, joining by the 11-digit GEOIDs
+map_texas <- left_join(map_texas, texas_district_to_geoid11, by = c("GEOID" = "GEOID11"))
+
+# 2025 district map with 2020 vote share data
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = DISTRICT, fill = ndv, denom = nrv + ndv)) +
+    scale_fill_party_c() +
+    theme_map()
+
+# Precincts colored by vote share with district borders overlaid
+map_texas |>
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=DISTRICT), linewidth=0.6, fill = NA) +
+    scale_fill_party_c() +
+    theme_map()
+```
