@@ -156,7 +156,7 @@ race_palette <- c(
   "Asian"    = "#9b59b6",
   "NHPI"     = "#f1c40f",
   "Other"    = "#95a5a6",
-  "Two+"     = "#d35400"
+  "Two+"     = "#faf705"
 )
 
 map_texas <- map_texas |> 

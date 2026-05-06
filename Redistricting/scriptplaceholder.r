@@ -6,20 +6,25 @@ library(ggplot2)
 library(ggredist)
 library(sf)
 
-plan2333 <- st_read("Redistricting/PLANC2333/PLANC2333.shp")
+plan2193 <- st_read("Redistricting/tx_cong_2021/PlanC2193.shp")
 plans_texas <- alarm_50state_plans('TX')
 
-plan2333_data <- left_join(plan2333 ,plans_texas, by = c("District" = "district"))
+plan2193_data <- left_join(plan2193 ,plans_texas, by = c("District" = "district"))
 
-plan2333_data <- plan2333_data |> filter(draw == "cd_2020")
+plan2193_data <- plan2193_data |> filter(draw == "cd_2020")
 
-plan2333_data |> 
+plan2193_data |> 
   ggplot() +
   geom_sf(aes(fill = comp_polsby)) +
   labs(fill = "Polsby compactness") +
-  scale_fill_gradient(limits = c(0, 1)) +
-  #scale_fill_party_c() +
-  theme_map()
+  scale_fill_gradient(
+    trans = scales::pseudo_log_trans(sigma = 0.01),
+    low = "blue", 
+    high = "red",
+    breaks = c(0,0.05,0.15,0.35,0.65,1),
+    labels = c("Lowest", "Low", "Mid Low", "Mid", "Mid High or Higher", "Highest"),
+    limits = c(0,1)) +
+    theme_map()
 
 MDadopt2022 <- st_read("Redistricting/md_cong_adopted_2022/SB1012-cong-shape-032822.shp")
 plans_maryland <- alarm_50state_plans('MD')
@@ -34,6 +39,11 @@ plans_maryland |>
   ggplot() +
   geom_sf(aes(fill = comp_polsby)) +
   labs(fill = "Polsby compactness") +
-  scale_fill_gradient(limits = c(0, 1)) +
-  #scale_fill_party_c() +
+  scale_fill_gradient(
+    #trans = scales::pseudo_log_trans(sigma = 0.01),
+    low = "blue", 
+    high = "red",
+    #breaks = c(0,0.05,0.15,0.35,0.65,1),
+    labels = c("Lowest", "Mid Low", "Mid", "High Mid", "Highest"),
+    limits = c(0,1)) +
   theme_map()
