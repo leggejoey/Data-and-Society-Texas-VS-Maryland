@@ -58,4 +58,334 @@ map_texas |>
     geom_district(aes(group=DISTRICT), linewidth=0.6, fill = NA) +
     scale_fill_party_c() +
     theme_map()
+
+map_texas |>
+  group_by(cd_2020) |>
+  summarize(
+    total_ndv = sum(ndv, na.rm = TRUE),
+    total_nrv = sum(nrv, na.rm = TRUE)
+  ) |>
+  filter(total_nrv > total_ndv) |>
+  nrow()
+
+map_texas |>
+  group_by(DISTRICT) |>
+  summarize(
+    total_ndv = sum(ndv, na.rm = TRUE),
+    total_nrv = sum(nrv, na.rm = TRUE)
+  ) |>
+  filter(total_nrv > total_ndv) |>
+  nrow()
+
+compet_talisman(plans = map_texas$cd_2020, shp = map_texas, rvote = nrv, dvote = ndv)
+compet_talisman(plans = map_texas$DISTRICT, shp = map_texas, rvote = nrv, dvote = ndv)
+```
+
+```{r}
+# Zoomed-in maps of major cities
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Houston")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = DISTRICT, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Houston")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-99.1, -97), ylim = c(29, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "San Antonio & Austin")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = DISTRICT, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-99.1, -97), ylim = c(29, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "San Antonio & Austin")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Dallas")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = DISTRICT, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Dallas")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-107, -103.5), ylim = c(30.7, 32.3), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "El Paso")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = DISTRICT, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-107, -103.5), ylim = c(30.7, 32.3), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "El Paso")
+
+```
+
+### Texas Demographics with Old vs New Districts
+
+```{r}
+race_palette <- c(
+  "Hispanic" = "#e67e22",
+  "White"    = "#3498db",
+  "Black"    = "#2ecc71",
+  "AIAN"     = "#e74c3c",
+  "Asian"    = "#9b59b6",
+  "NHPI"     = "#f1c40f",
+  "Other"    = "#95a5a6",
+  "Two+"     = "#faf705"
+)
+
+map_texas <- map_texas |> 
+  mutate(majority_race = case_when(
+    vap_hisp  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Hispanic",
+    vap_white == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "White",
+    vap_black == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Black",
+    vap_aian  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "AIAN",
+    vap_asian == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Asian",
+    vap_nhpi  == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "NHPI",
+    vap_other == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Other",
+    vap_two   == pmax(vap_hisp, vap_white, vap_black, vap_aian, 
+                      vap_asian, vap_nhpi, vap_other, vap_two) ~ "Two+",
+    TRUE ~ "Multiple/Tie"
+  ))
+
+# calculate the majority race for the entire district - old districts
+map_texas <- map_texas |>
+  group_by(cd_2020) |>
+  mutate(
+    across(starts_with("vap_"), \(x) sum(x, na.rm = TRUE), .names = "tot_{.col}")
+  ) |>
+  mutate(old_district_majority_race = case_when(
+    tot_vap_hisp  == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Hispanic",
+    tot_vap_white == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "White",
+    tot_vap_black == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Black",
+    tot_vap_aian  == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "AIAN",
+    tot_vap_asian == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Asian",
+    tot_vap_nhpi  == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "NHPI",
+    tot_vap_other == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Other",
+    tot_vap_two   == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Two+",
+    TRUE ~ "Multiple/Tie"
+  )) |>
+  select(-starts_with("tot_")) |>
+  ungroup()
+
+# calculate the majority race for the entire district - new districts
+map_texas <- map_texas |>
+  group_by(DISTRICT) |>
+  mutate(
+    across(starts_with("vap_"), \(x) sum(x, na.rm = TRUE), .names = "tot_{.col}")
+  ) |>
+  mutate(new_district_majority_race = case_when(
+    tot_vap_hisp  == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Hispanic",
+    tot_vap_white == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "White",
+    tot_vap_black == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Black",
+    tot_vap_aian  == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "AIAN",
+    tot_vap_asian == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Asian",
+    tot_vap_nhpi  == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "NHPI",
+    tot_vap_other == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Other",
+    tot_vap_two   == pmax(tot_vap_hisp, tot_vap_white, tot_vap_black, tot_vap_aian, 
+                          tot_vap_asian, tot_vap_nhpi, tot_vap_other, tot_vap_two) ~ "Two+",
+    TRUE ~ "Multiple/Tie"
+  )) |>
+  select(-starts_with("tot_")) |>
+  ungroup()
+
+# Old map
+map_texas |> 
+  ggplot() +
+  geom_sf(aes(fill = majority_race), color = NA) +
+  geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+  scale_fill_manual(values = race_palette) +
+  theme_map() +
+  labs(fill = "Majority Race (VAP)")
+
+# New map
+map_texas |> 
+  ggplot() +
+  geom_sf(aes(fill = majority_race), color = NA) +
+  geom_district(aes(group=DISTRICT), color = "black", fill = NA, linewidth=0.6) +
+  scale_fill_manual(values = race_palette) +
+  theme_map() +
+  labs(fill = "Majority Race (VAP)")
+  
+# Zoomed-in maps of major cities
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) +
+    geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Houston")
+
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) +
+    geom_district(aes(group=DISTRICT), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Houston")
+
+# Don't show district lines
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Houston")
+
+# aggregate majority races over entire districts
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = old_district_majority_race), color = NA) +
+    geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Houston", fill = "Majority Race (VAP)")
+
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = new_district_majority_race), color = NA) +
+    geom_district(aes(group=DISTRICT), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Houston", fill = "Majority Race (VAP)")
+
+# Don't show district lines
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) +
+    coord_sf(xlim = c(-101, -96), ylim = c(25, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "San Antonio & Austin")
+
+# aggregate majority races over entire districts
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = old_district_majority_race), color = NA) +
+    geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-101, -96), ylim = c(25, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "San Antonio & Austin", fill = "Majority Race (VAP)")
+
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = new_district_majority_race), color = NA) +
+    geom_district(aes(group=DISTRICT), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-101, -96), ylim = c(25, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "San Antonio & Austin", fill = "Majority Race (VAP)")
+
+# Don't show district lines
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Dallas")
+
+# aggregate majority races over entire districts
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = old_district_majority_race), color = NA) +
+    geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Dallas", fill = "Majority Race (VAP)")
+
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = new_district_majority_race), color = NA) +
+    geom_district(aes(group=DISTRICT), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "Dallas", fill = "Majority Race (VAP)")
+
+# Don't show district lines
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = majority_race), color = NA) +
+    coord_sf(xlim = c(-107, -101.5), ylim = c(28.7, 32.3), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "El Paso")
+
+# aggregate majority races over entire districts
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = old_district_majority_race), color = NA) +
+    geom_district(aes(group=cd_2020), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-107, -101.5), ylim = c(28.7, 32.3), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "El Paso", fill = "Majority Race (VAP)")
+
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = new_district_majority_race), color = NA) +
+    geom_district(aes(group=DISTRICT), color = "black", fill = NA, linewidth=0.6) +
+    coord_sf(xlim = c(-107, -101.5), ylim = c(28.7, 32.3), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_manual(values = race_palette) +
+    theme_map() +
+    labs(title = "El Paso", fill = "Majority Race (VAP)")
 ```
