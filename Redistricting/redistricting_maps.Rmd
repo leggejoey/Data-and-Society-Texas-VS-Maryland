@@ -1,0 +1,28 @@
+---
+title: "Redistricting Maps"
+output: html_document
+date: "2026-05-20"
+---
+
+```{r}
+library(tidyverse)
+library(alarmdata)
+library(PL94171)
+library(ggplot2)
+library(redist)
+library(ggredist)
+library(sf)
+options(scipen = 999)
+```
+
+```{r}
+# ALARM data map of Texas
+map_texas <- alarm_50state_map("TX")
+
+#redist_map_texas <- redist_map(map_texas, existing_plan=cd_2020, pop_tol=0.01, total_pop = pop)
+redist_texas_plans <- redist_smc(map_texas, nsims = 5)
+
+redist.plot.plans(redist_texas_plans, draws=c("cd_2020", "1", "2", "3"), shp=map_texas)
+```
+
+
