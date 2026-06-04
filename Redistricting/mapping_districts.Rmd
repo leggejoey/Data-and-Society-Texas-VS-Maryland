@@ -192,6 +192,54 @@ map_texas |>
 ```
 
 
+### TX 2025 map (in progress)
+
+```{r}
+# read shapefile
+map_texas_2025 <- st_read('PLANC2333/PLANC2333.shp')
+map_texas_2025 |>
+  ggplot() +
+  geom_sf() +
+  theme_minimal()
+
+options(scipen = 999)
+
+texas_district_to_geoid <- readr::read_csv("PLANC2333/PLANC2333.csv")
+
+simplified_texas_district_to_geoid <- texas_district_to_geoid |>
+  mutate(SCTBKEY = substr(SCTBKEY, 1, nchar(SCTBKEY) - 4)) |>
+  distinct(SCTBKEY, .keep_all = TRUE)
+
+map_texas_districts_2025 <- left_join(map_texas, simplified_texas_district_to_geoid, by = c("GEOID" = "SCTBKEY"))
+
+#merged_texas_geoid_shape <- left_join(map_texas_2025, texas_district_to_geoid, by = c("District"= "DISTRICT"))
+
+#merge_with_demographic <- left_join()
+
+library(PL94171)
+TX_geom <- pl_tidy_shp("TX", year = 2020, type = c("blocks", "vtds"), path = pl_url("TX", year = 2020))
+
+save(TX_geom, file = "TX_geom.RData")
+load("TX_geom.RData")
+
+texas_district_to_geoid <- texas_district_to_geoid |> mutate(SCTBKEY = as.character(SCTBKEY))
+TX_geom <- left_join(TX_geom, texas_district_to_geoid, by = c("GEOID" = "SCTBKEY"))
+
+TX_geom_simplified <- TX_geom |> distinct(VTDST20, .keep_all = TRUE)
+
+TX_vtd <- pl_get_vtd("TX")
+TX_vtd |>
+  ggplot() +
+  geom_sf() +
+  theme_minimal()
+
+#TX_geom |>
+  #ggplot() +
+  #geom_district(aes(group = DISTRICT, fill = pop_white, denom = pop)) +
+  #theme_map()
+```
+
+
 ### Maryland
 
 

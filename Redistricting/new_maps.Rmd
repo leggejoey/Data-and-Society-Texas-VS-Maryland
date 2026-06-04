@@ -389,3 +389,55 @@ map_texas |>
     theme_map() +
     labs(title = "El Paso", fill = "Majority Race (VAP)")
 ```
+
+```{r}
+## 2025 Texas map stats
+
+# Proportion of republican votes compared to all votes across Texas
+sum(map_texas$nrv) / (sum(map_texas$ndv) + sum(map_texas$nrv)) # 0.5374333
+# Proportion of white vap compared to all vap in Texas
+sum(map_texas$vap_white) / (sum(map_texas$vap)) # 0.4316149
+# Proportion of Hispanic population compared to all population in Texas
+sum(map_texas$vap_hisp) / (sum(map_texas$vap)) # 0.3616146
+# Proportion of black population compared to all population in Texas
+sum(map_texas$vap_black) / (sum(map_texas$vap)) # 0.1177707
+
+aggregate_stats <- map_texas |>
+  group_by(DISTRICT) |>
+  summarize(
+    total_rep_votes = sum(nrv, na.rm = TRUE),
+    total_dem_votes = sum(ndv, na.rm = TRUE),
+    total_vap_white = sum(vap_white, na.rm = TRUE),
+    total_vap_hisp = sum(vap_hisp, na.rm = TRUE),
+    total_vap_black = sum(vap_black, na.rm = TRUE),
+    #total_vap = sum(vap, na.rm = TRUE),
+  ) |>
+  ungroup() |>
+  summarize(
+    proportion_rep_districts = mean(total_rep_votes > total_dem_votes),
+    majority_vap_white_districts = mean(total_vap_white == pmax(total_vap_white, total_vap_hisp, total_vap_black)),
+    majority_vap_hisp_districts = mean(total_vap_hisp == pmax(total_vap_white, total_vap_hisp, total_vap_black)),
+    majority_vap_black_districts = mean(total_vap_black == pmax(total_vap_white, total_vap_hisp, total_vap_black))
+  )
+# Proportion of districts that have republican voting majority
+aggregate_stats$proportion_rep_districts # 0.7105263 <- increase from previous
+# Proportion of districts that have white vap majority
+aggregate_stats$majority_vap_white_districts # 0.6578947
+# Proportion of districts that have Hispanic vap majority
+aggregate_stats$majority_vap_hisp_districts # 0.2894737
+# Proportion of districts that have black vap majority
+aggregate_stats$majority_vap_black_districts # 0.05263158
+
+# Mean Polsby compactness of districts
+mean(comp_polsby(plans = map_texas$DISTRICT, shp = map_texas)) # 0.2136063 <- more compact
+# Mean Reock compactness of districts
+mean(comp_reock(plans = map_texas$DISTRICT, shp = map_texas)) # 0.3424788 <- more compact
+# number of total county splits
+splits_total(plans = map_texas$DISTRICT, shp = map_texas, admin = county)[1] # 56 <- less splits
+# partisan symmetry
+part_bias(plans = map_texas$DISTRICT, shp = map_texas, dvote = ndv, rvote = nrv)[1] # 0.1842105 <- biased more toward Republican side
+# partisan efficiency
+part_egap(plans = map_texas$DISTRICT, shp = map_texas, dvote = ndv, rvote = nrv)[1] # 0.1822141 <- even more wasted Dem votes compared to wasted Rep votes
+# Compute Talismanic Redistricting Competitiveness Metric - might not use
+compet_talisman(plans = map_texas$DISTRICT, shp = map_texas, dvote = ndv, rvote = nrv)[1] # 0.1634001 <- less competitive?
+```

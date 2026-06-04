@@ -19,10 +19,455 @@ options(scipen = 999)
 # ALARM data map of Texas
 map_texas <- alarm_50state_map("TX")
 
-#redist_map_texas <- redist_map(map_texas, existing_plan=cd_2020, pop_tol=0.01, total_pop = pop)
-redist_texas_plans <- redist_smc(map_texas, nsims = 5)
+#map_texas <- set_pop_tol(map_texas, 0.05)
 
-redist.plot.plans(redist_texas_plans, draws=c("cd_2020", "1", "2", "3"), shp=map_texas)
+# Divide map into sectors around cities for easier redistricting
+dallas_map <- map_texas |> filter(cd_2020 %in% c(13,19,25,12,26,24,33,30,32,6,5,4,3,1))
+houston_map <- map_texas |> filter(cd_2020 %in% c(8,36,2,14,38,18,29,7,9,22))
+remaining_map <- map_texas |> filter(cd_2020 %in% c(17,31,11,21,20,10,37,35,28,15,27,34,23,16))
+
+houston_map |> 
+    ggplot() +
+    geom_district(aes(group = cd_2020, fill = ndv, denom = nrv + ndv)) +
+    scale_fill_party_c() +
+    theme_map()
+
+# All of Texas
+texas_constraints <- redist_constr(map_texas)
+texas_constraints <- add_constr_compet(texas_constraints, 1, dvote = ndv, rvote = nrv, pow = 0.4625667)
+texas_constraints <- add_constr_polsby(texas_constraints, 1, perim_df = NULL)
+
+#redist_map_texas <- redist_map(map_texas, existing_plan=cd_2020, pop_tol=0.01, total_pop = pop)
+redist_texas_plans <- redist_smc(map_texas, nsims = 100, constraints = texas_constraints)
+
+redist.plot.plans(redist_texas_plans, draws=c("cd_2020", "4", "75", "99"), shp=map_texas)
+summary(redist_texas_plans)
+hist(plans_diversity(redist_texas_plans), breaks=24)
+str(redist_texas_plans)
+
+texas_plans_matrix <- get_plans_matrix(redist_texas_plans)
+# |> write.csv()
+
+first_generated_plan <- texas_plans_matrix[, 2]
+map_texas$test_district_plan <- first_generated_plan
+map_texas |>
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=test_district_plan), linewidth=0.6, fill = NA) +
+    scale_fill_party_c() +
+    theme_map()
+
+
+# Dallas
+dallas_constraints <- redist_constr(dallas_map)
+dallas_constraints <- add_constr_compet(dallas_constraints, 1, dvote = ndv, rvote = nrv, pow = 0.4625667)
+dallas_constraints <- add_constr_polsby(dallas_constraints, 1, perim_df = NULL)
+redist_dallas_plans <- redist_smc(dallas_map, nsims = 100, constraints = dallas_constraints)
+redist.plot.plans(redist_dallas_plans, draws=c("cd_2020", "2", "3", "4"), shp=dallas_map)
+summary(redist_dallas_plans)
+
+# Houston
+houston_constraints <- redist_constr(houston_map)
+houston_constraints <- add_constr_compet(houston_constraints, 1, dvote = ndv, rvote = nrv, pow = 0.4625667)
+houston_constraints <- add_constr_polsby(houston_constraints, 1, perim_df = NULL)
+redist_houston_plans <- redist_smc(houston_map, nsims = 100, constraints = houston_constraints)
+redist.plot.plans(redist_houston_plans, draws=c("cd_2020", "2", "3", "4"), shp=houston_map)
+summary(redist_houston_plans)
+
+redist.adjacency(houston_map)
+
+# Remaining Areas
+remaining_constraints <- redist_constr(remaining_map)
+remaining_constraints <- add_constr_compet(remaining_constraints, 1, dvote = ndv, rvote = nrv, pow = 0.4625667)
+remaining_constraints <- add_constr_polsby(remaining_constraints, 1, perim_df = NULL)
+redist_remaining_plans <- redist_smc(remaining_map, nsims = 100, constraints = remaining_constraints)
+redist.plot.plans(redist_remaining_plans, draws=c("cd_2020", "2", "3", "4"), shp=remaining_map)
+summary(redist_remaining_plans)
 ```
 
+```{r}
+map_texas <- alarm_50state_map("TX")
+
+# plot Texas counties
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = county, fill = ndv, denom = nrv + ndv)) +
+    scale_fill_party_c() +
+    theme_map()
+
+# 2025 map stats are in the new_maps.rmd file
+## Existing 2020 Texas map stats
+
+# Proportion of republican votes compared to all votes across Texas
+sum(map_texas$nrv) / (sum(map_texas$ndv) + sum(map_texas$nrv)) # 0.5374333
+# Proportion of white vap compared to all vap in Texas
+sum(map_texas$vap_white) / (sum(map_texas$vap)) # 0.4316149
+# Proportion of Hispanic population compared to all population in Texas
+sum(map_texas$vap_hisp) / (sum(map_texas$vap)) # 0.3616146
+# Proportion of black population compared to all population in Texas
+sum(map_texas$vap_black) / (sum(map_texas$vap)) # 0.1177707
+
+aggregate_stats <- map_texas |>
+  group_by(cd_2020) |>
+  summarize(
+    total_rep_votes = sum(nrv, na.rm = TRUE),
+    total_dem_votes = sum(ndv, na.rm = TRUE),
+    total_vap_white = sum(vap_white, na.rm = TRUE),
+    total_vap_hisp = sum(vap_hisp, na.rm = TRUE),
+    total_vap_black = sum(vap_black, na.rm = TRUE),
+    #total_vap = sum(vap, na.rm = TRUE),
+  ) |>
+  ungroup() |>
+  summarize(
+    proportion_rep_districts = mean(total_rep_votes > total_dem_votes),
+    majority_vap_white_districts = mean(total_vap_white == pmax(total_vap_white, total_vap_hisp, total_vap_black)),
+    majority_vap_hisp_districts = mean(total_vap_hisp == pmax(total_vap_white, total_vap_hisp, total_vap_black)),
+    majority_vap_black_districts = mean(total_vap_black == pmax(total_vap_white, total_vap_hisp, total_vap_black))
+  )
+# Proportion of districts that have republican voting majority
+aggregate_stats$proportion_rep_districts # 0.6315789
+# Proportion of districts that have white vap majority
+aggregate_stats$majority_vap_white_districts # 0.6578947
+# Proportion of districts that have Hispanic vap majority
+aggregate_stats$majority_vap_hisp_districts # 0.2894737
+# Proportion of districts that have black vap majority
+aggregate_stats$majority_vap_black_districts # 0.05263158
+
+# Mean Polsby compactness of districts
+mean(comp_polsby(plans = map_texas$cd_2020, shp = map_texas)) # 0.1972574
+# Mean Reock compactness of districts
+mean(comp_reock(plans = map_texas$cd_2020, shp = map_texas)) # 0.3350558
+# number of total county splits
+splits_total(plans = map_texas$cd_2020, shp = map_texas, admin = county)[1] # 59
+# partisan symmetry
+part_bias(plans = map_texas$cd_2020, shp = map_texas, dvote = ndv, rvote = nrv)[1] # 0.1315789
+# partisan efficiency
+part_egap(plans = map_texas$cd_2020, shp = map_texas, dvote = ndv, rvote = nrv)[1] # 0.114671
+# Compute Talismanic Redistricting Competitiveness Metric - might not use
+compet_talisman(plans = map_texas$cd_2020, shp = map_texas, dvote = ndv, rvote = nrv)[1] # 0.1802279
+
+texas_constraints <- redist_constr(map_texas)
+#texas_constraints <- add_constr_compet(texas_constraints, 1, dvote = ndv, rvote = nrv, pow = 0.4625667)
+texas_constraints <- add_constr_polsby(texas_constraints, 1, perim_df = NULL)
+
+redist_texas_plans <- redist_smc(map_texas, nsims = 1000, counties = county, constraints = texas_constraints)
+
+redist.plot.plans(redist_texas_plans, draws=c(50:60), shp=map_texas)
+summary(redist_texas_plans)
+hist(plans_diversity(redist_texas_plans), breaks=24)
+
+texas_plans_matrix <- get_plans_matrix(redist_texas_plans)
+saveRDS(texas_plans_matrix, file = "texas_redistricting_matrix_compactness.rds")
+
+redistricting_output <- data.frame(
+  plan_number = integer(),
+  proportion_rep_districts = numeric(),
+  majority_vap_white_districts = numeric(),
+  majority_vap_hisp_districts = numeric(),
+  majority_vap_black_districts = numeric(),
+  mean_polsby_compactness = numeric(),
+  mean_reock_compactness = numeric(),
+  county_splits = numeric(),
+  partisan_symmetry = numeric(),
+  partisan_efficiency = numeric()
+)
+
+for (i in 2:1001) {
+  generated_plan <- texas_plans_matrix[, i]
+  map_texas$generated_district_plan <- generated_plan
+  aggregate_stats <- map_texas |>
+    group_by(generated_district_plan) |>
+    summarize(
+      total_rep_votes = sum(nrv, na.rm = TRUE),
+      total_dem_votes = sum(ndv, na.rm = TRUE),
+      total_vap_white = sum(vap_white, na.rm = TRUE),
+      total_vap_hisp = sum(vap_hisp, na.rm = TRUE),
+      total_vap_black = sum(vap_black, na.rm = TRUE),
+    ) |>
+    ungroup() |>
+    summarize(
+      proportion_rep_districts = mean(total_rep_votes > total_dem_votes),
+    majority_vap_white_districts = mean(total_vap_white == pmax(total_vap_white, total_vap_hisp, total_vap_black)),
+    majority_vap_hisp_districts = mean(total_vap_hisp == pmax(total_vap_white, total_vap_hisp, total_vap_black)),
+    majority_vap_black_districts = mean(total_vap_black == pmax(total_vap_white, total_vap_hisp, total_vap_black))
+    )
+  
+  district_polsby_list <- comp_polsby(plans = texas_plans_matrix[, i], shp = map_texas)
+  district_reock_list <- comp_reock(plans = texas_plans_matrix[, i], shp = map_texas)
+  
+  redistricting_output <- redistricting_output |> add_row(
+    plan_number = i,
+    proportion_rep_districts = aggregate_stats$proportion_rep_districts,
+    majority_vap_white_districts = aggregate_stats$majority_vap_white_districts,
+    majority_vap_hisp_districts = aggregate_stats$majority_vap_hisp_districts,
+    majority_vap_black_districts = aggregate_stats$majority_vap_black_districts,
+    mean_polsby_compactness = mean(district_polsby_list),
+    mean_reock_compactness = mean(district_reock_list),
+    county_splits = splits_total(plans = texas_plans_matrix[, i], shp = map_texas, admin = county)[1],
+    partisan_symmetry = part_bias(plans = texas_plans_matrix[, i], shp = map_texas, dvote = ndv, rvote = nrv)[1],
+    partisan_efficiency = part_egap(plans = texas_plans_matrix[, i], shp = map_texas, dvote = ndv, rvote = nrv)[1]
+  )
+  
+  cat("Plan #: ", i, " complete\n")
+}
+
+saveRDS(redistricting_output, file = "texas_redistricting_compactness.rds")
+#redistricting_output <- readRDS("texas_redistricting_compactness.rds")
+
+## Generated districts plots
+
+# Histogram of proportion of districts that have republican voting majority
+ggplot(redistricting_output, aes(x = proportion_rep_districts)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.5374333, color = "black", size = 1) +
+  annotate("text", x = 0.5374333, y = 0, label = 0.537, 
+           vjust = -27, hjust = -0.1, color = "black") +
+  annotate("text", x = 0.5374333, y = 0, label = "State-wide proportion", 
+           vjust = -0.5, hjust = -1.5, angle = 90, color = "black") + # 2020 Proportion of republican votes compared to all votes across Texas
+  geom_vline(xintercept = 0.6315789, color = "darkred", size = 1) +
+  annotate("text", x = 0.6315789, y = 0, label = 0.632, 
+           vjust = -27, hjust = -0.1, color = "darkred") +
+  annotate("text", x = 0.6315789, y = 0, label = "2021 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "darkred") + # 2020 map - Proportion of districts that have republican voting majority
+  geom_vline(xintercept = 0.7105263, color = "red", size = 1) +
+  annotate("text", x = 0.7105263, y = 0, label = 0.711, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.7105263, y = 0, label = "2025 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "red") + # 2025 map - Proportion of districts that have republican voting majority
+  labs(x = "Proportion of districts that have Republican voting majority", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of proportion of districts that have white vap majority
+ggplot(redistricting_output, aes(x = majority_vap_white_districts)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.4316149, color = "black", size = 1) +
+  annotate("text", x = 0.4316149, y = 0, label = 0.432, 
+           vjust = -27, hjust = -0.1, color = "black") +
+  annotate("text", x = 0.4316149, y = 0, label = "State-wide proportion", 
+           vjust = -0.5, hjust = -1.5, angle = 90, color = "black") + # 2020 Proportion of white vap compared to all vap in Texas
+  geom_vline(xintercept = 0.6578947, color = "red", size = 1) +
+  annotate("text", x = 0.6578947, y = 0, label = 0.658, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.6578947, y = 0, label = "2021 & 2025 enacted plans", 
+           vjust = -0.5, hjust = -1, angle = 90, color = "red") + # 2020 and 2025 map - Proportion of districts that have white vap majority
+  labs(x = "Proportion of districts that have White VAP majority", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of proportion of districts that have hispanic vap majority
+ggplot(redistricting_output, aes(x = majority_vap_hisp_districts)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.3616146, color = "black", size = 1) +
+  annotate("text", x = 0.3616146, y = 0, label = 0.362, 
+           vjust = -27, hjust = -0.1, color = "black") +
+  annotate("text", x = 0.3616146, y = 0, label = "State-wide proportion", 
+           vjust = -0.5, hjust = -1.5, angle = 90, color = "black") + # 2020 Proportion of hispanic vap compared to all vap in Texas
+  geom_vline(xintercept = 0.2894737, color = "red", size = 1) +
+  annotate("text", x = 0.2894737, y = 0, label = 0.289, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.2894737, y = 0, label = "2021 & 2025 enacted plans", 
+           vjust = -0.5, hjust = -1, angle = 90, color = "red") + # 2020 and 2025 map - Proportion of districts that have hispanic vap majority
+  labs(x = "Proportion of districts that have Hispanic VAP majority", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of proportion of districts that have black vap majority
+ggplot(redistricting_output, aes(x = majority_vap_black_districts)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.1177707, color = "black", size = 1) +
+  annotate("text", x = 0.1177707, y = 0, label = 0.118, 
+           vjust = -27, hjust = -0.1, color = "black") +
+  annotate("text", x = 0.1177707, y = 0, label = "State-wide proportion", 
+           vjust = -0.5, hjust = -1.5, angle = 90, color = "black") + # 2020 Proportion of black vap compared to all vap in Texas
+  geom_vline(xintercept = 0.05263158, color = "red", size = 1) +
+  annotate("text", x = 0.05263158, y = 0, label = 0.053, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.05263158, y = 0, label = "2021 & 2025 enacted plans", 
+           vjust = -0.5, hjust = -1, angle = 90, color = "red") + # 2020 and 2025 map - Proportion of districts that have black vap majority
+  labs(x = "Proportion of districts that have Black VAP majority", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of mean polsby compactness
+ggplot(redistricting_output, aes(x = mean_polsby_compactness)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.1972574, color = "darkred", size = 1) +
+  annotate("text", x = 0.1972574, y = 0, label = 0.197, 
+           vjust = -27, hjust = -0.1, color = "darkred") +
+  annotate("text", x = 0.1972574, y = 0, label = "2021 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "darkred") + # 2020 map
+  geom_vline(xintercept = 0.2136063, color = "red", size = 1) +
+  annotate("text", x = 0.2136063, y = 0, label = 0.214, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.2136063, y = 0, label = "2025 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "red") + # 2025 map
+  labs(x = "Mean Polsby compactness of districts", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of mean reock compactness
+ggplot(redistricting_output, aes(x = mean_reock_compactness)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.3424788, color = "red", size = 1) +
+  annotate("text", x = 0.3424788, y = 0, label = 0.342, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.3424788, y = 0, label = "2025 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "red") + # 2025 map
+  geom_vline(xintercept = 0.3350558, color = "darkred", size = 1) +
+  annotate("text", x = 0.3350558, y = 0, label = 0.335, 
+           vjust = -15, hjust = -0.1, color = "darkred") +
+  annotate("text", x = 0.3350558, y = 0, label = "2021 enacted plan", 
+           vjust = -0.5, hjust = -1, angle = 90, color = "darkred") + # 2020 map
+  labs(x = "Mean Reock compactness of districts", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of number of county splits
+ggplot(redistricting_output, aes(x = county_splits)) +
+  geom_histogram(binwidth = 1, fill = "darkgrey") +
+  geom_vline(xintercept = 59, color = "darkred", size = 1) +
+  annotate("text", x = 59, y = 0, label = 59, 
+           vjust = -27, hjust = -0.1, color = "darkred") +
+  annotate("text", x = 59, y = 0, label = "2021 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "darkred") + # 2020 map
+  geom_vline(xintercept = 56, color = "red", size = 1) +
+  annotate("text", x = 56, y = 0, label = 56, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 56, y = 0, label = "2025 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "red") + # 2025 map
+  labs(x = "Number of county splits", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of partisan symmetry
+ggplot(redistricting_output, aes(x = partisan_symmetry)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.1315789, color = "darkred", size = 1) +
+  annotate("text", x = 0.1315789, y = 0, label = 0.132, 
+           vjust = -27, hjust = -0.1, color = "darkred") +
+  annotate("text", x = 0.1315789, y = 0, label = "2021 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "darkred") + # 2020 map
+  geom_vline(xintercept = 0.1842105, color = "red", size = 1) +
+  annotate("text", x = 0.1842105, y = 0, label = 0.184, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.1842105, y = 0, label = "2025 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "red") + # 2025 map
+  labs(x = "Deviation from partisan symmetry", y = "Number of generated plans") +
+  theme_minimal()
+
+# Histogram of partisan efficiency
+ggplot(redistricting_output, aes(x = partisan_efficiency)) +
+  geom_histogram(binwidth = 0.01, fill = "darkgrey") +
+  geom_vline(xintercept = 0.114671, color = "darkred", size = 1) +
+  annotate("text", x = 0.114671, y = 0, label = 0.115, 
+           vjust = -27, hjust = -0.1, color = "darkred") +
+  annotate("text", x = 0.114671, y = 0, label = "2021 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "darkred") + # 2020 map
+  geom_vline(xintercept = 0.18, color = "red", size = 1) +
+  annotate("text", x = 0.18, y = 0, label = 0.182, 
+           vjust = -27, hjust = -0.1, color = "red") +
+  annotate("text", x = 0.18, y = 0, label = "2025 enacted plan", 
+           vjust = -0.5, hjust = -1.8, angle = 90, color = "red") + # 2025 map
+  labs(x = "Partisan efficiency gap", y = "Number of generated plans") +
+  theme_minimal()
+
+## Find maps that optimize certain metrics
+
+# Plan #s that are closest to political proportionality in district representation
+redistricting_output$proportion_rep_districts[which.min(abs(redistricting_output$proportion_rep_districts - 0.5374333))] # 0.5263158
+politically_proportional_plans <- redistricting_output |> filter(proportion_rep_districts > 0.5 & proportion_rep_districts < 0.55)
+
+# Plan #s that are closest to hispanic demographic proportionality in district representation
+redistricting_output$majority_vap_hisp_districts[which.min(abs(redistricting_output$majority_vap_hisp_districts - 0.3616146))] # 0.3684211
+redistricting_output |> filter(abs(majority_vap_hisp_districts - 0.3684211) < 0.01)
+
+# Plan #s with max polsby compactness
+redistricting_output[which(redistricting_output$mean_polsby_compactness == max(redistricting_output$mean_polsby_compactness)), ] # max amount is 0.2999743. Plan #s: 26,27,28
+
+# Plan #s with max reock compactness
+redistricting_output[which(redistricting_output$mean_reock_compactness == max(redistricting_output$mean_reock_compactness)), ] # max amount is 0.445732: Plan #s: 369,370
+
+# Plan #s with min county splits
+redistricting_output[which(redistricting_output$county_splits == min(redistricting_output$county_splits)), ] # the min amount is 29. Ex. plan # 49
+
+# out of the plans that are most politically proportional, and out of plans with the most proportional hispanic district representation that have at least 1 majority black district, plan # 536 has the highest mean reock compactness and has only 31 county splits:
+politically_and_demographically_proportional_plans <- politically_proportional_plans |> filter(abs(majority_vap_hisp_districts - 0.3684211) < 0.01 & majority_vap_black_districts > 0)
+
+```
+```{r}
+
+## Plot redistricted maps
+
+#redist.plot.plans(redist_texas_plans, draws=c(330, 548), shp=map_texas)
+
+# 954
+plot_generated_plan <- texas_plans_matrix[, 563]
+map_texas$generated_district_plan <- plot_generated_plan
+map_texas |>
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=generated_district_plan), linewidth=0.6, fill = NA) +
+    scale_fill_party_c() +
+    theme_map()
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = generated_district_plan, fill = ndv, denom = nrv + ndv)) +
+    scale_fill_party_c() +
+    theme_map()
+
+# Zoomed-in maps of major cities
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = generated_district_plan, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Houston")
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=generated_district_plan), linewidth=0.6, fill = NA) +
+    coord_sf(xlim = c(-96.5, -94.5), ylim = c(29, 30.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_map() +
+    labs(title = "Houston")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = generated_district_plan, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-99.1, -97), ylim = c(29, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "San Antonio & Austin")
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=generated_district_plan), linewidth=0.6, fill = NA) +
+    coord_sf(xlim = c(-99.1, -97), ylim = c(29, 30.7), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_map() +
+    labs(title = "San Antonio & Austin")
+
+map_texas |> 
+    ggplot() +
+    geom_district(aes(group = generated_district_plan, fill = ndv, denom = nrv + ndv)) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_bw() +
+    labs(title = "Dallas")
+map_texas |> 
+    ggplot() +
+    geom_sf(aes(fill = ndv / (nrv + ndv)), color = NA) +
+    geom_district(aes(group=generated_district_plan), linewidth=0.6, fill = NA) +
+    coord_sf(xlim = c(-97.5, -96), ylim = c(32, 33.5), expand = FALSE, default_crs = sf::st_crs(4326)) +
+    scale_fill_party_c() +
+    theme_map() +
+    labs(title = "Dallas")
+
+```
+
+```{r}
+# ALARM data map of Maryland
+map_maryland <- alarm_50state_map("MD")
+#map_maryland <- redist_map(existing_plan = map_maryland, ndists = 8, pop_tol = 0.05, total_pop = pop)
+map_maryland <- set_pop_tol(map_maryland, 0.05)
+
+redist_maryland_plans <- redist_smc(map_maryland, nsims = 5)
+
+redist.plot.plans(redist_maryland_plans, draws=c("cd_2020", "2", "3", "4"), shp=map_maryland)
+```
 
