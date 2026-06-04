@@ -49,60 +49,16 @@ plans_maryland |>
 
 new_texas_map <- redist_map(plan2193_data, ndists = 38, pop_tol = 0.03)
 
-#original map
+#original map from 2020
 new_texas_map |> 
   ggplot() +
   geom_sf(aes(fill = ndv / (nrv + ndv)), linetype = "dashed") +
   scale_fill_party_c() +
   theme_map()
 
-#breaking up the map geometry for an easier calculation for my computer
-texas_q1 <- new_texas_map |> filter(District %in% c(13,19,11,25,12,26,31,24))
-texas_q2 <- new_texas_map |> filter(District %in% c(1,3,4,5,6,30,32,33,17))
-texas_q3 <- new_texas_map |> filter(District %in% c(38,29,7,9,18,36,14,22,2,8))
-texas_q4 <- new_texas_map |> filter(District %in% c(10,35,27,37,31,21,20))
-texas_q5 <- new_texas_map |> filter(District %in% c(15,34,28,16,23))
+newest_texas_map <- alarm_50state_map("TX")
 
-texas_q1 |>
-  ggplot() + 
-  geom_sf(aes(fill = ndv / (nrv + ndv)), linetype = "dashed") +
-  scale_fill_party_c() +
-  theme_map()
+#making a new map sample, it doesn't have any geometry anymore so that will need to be added back in
+actual_map <- redist_smc(newest_texas_map, nsims = 1000, ncores = 6)
 
-texas_q2 |>
-  ggplot() + 
-  geom_sf(aes(fill = ndv / (nrv + ndv)), linetype = "dashed") +
-  scale_fill_party_c() +
-  theme_map()
-
-texas_q3 |>
-  ggplot() + 
-  geom_sf(aes(fill = ndv / (nrv + ndv)), linetype = "dashed") +
-  scale_fill_party_c() +
-  theme_map()
-
-texas_q4 |>
-  ggplot() + 
-  geom_sf(aes(fill = ndv / (nrv + ndv)), linetype = "dashed") +
-  scale_fill_party_c() +
-  theme_map()
-
-texas_q5 |>
-  ggplot() + 
-  geom_sf(aes(fill = ndv / (nrv + ndv)), linetype = "dashed") +
-  scale_fill_party_c() +
-  theme_map()
-
-#new map still broken :\
-new_texas_map_sim <- redist_smc(texas_q1, nsims = 5, ncores = 5)
-
-  #tmap example:
-  #library(tmap)
-  #map_wa <- alarm_50state_map("WA")
-  #tmap_mode("view") #once per r session
-  #my_map <- map_wa |> 
-  #  mutate(prop_hisp = pop_hisp/pop) |>
-  #  tm_shape() + 
-  #    tm_polygons("prop_hisp", hover = "prop_hisp")
-  #tmap_leaflet(my_map) #converts it to leaflet object
-  #my_map
+actual_map2 <- redist_smc(newest_texas_map, nsims = 100, ncores = 5)
